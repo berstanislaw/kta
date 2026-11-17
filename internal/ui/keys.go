@@ -163,6 +163,8 @@ func (m model) handleKey(k tea.KeyMsg) (model, tea.Cmd) {
 		return m.openTicket(true)
 	case "z", "Z":
 		return m.foldKey(key)
+	case "a":
+		return m.addToGroup()
 	case "g", "G":
 		if i := m.selectedIssue(); i != nil {
 			m.marked = toggle(m.marked, i.Key)
@@ -318,6 +320,9 @@ func (m model) keyHelp() []keyHelp {
 		group := []keyHelp{{"g", "mark / unmark", true}}
 		if marks > 1 {
 			group = append(group, keyHelp{"n", fmt.Sprintf("one session for the %d cards", marks), true})
+		}
+		if i := m.selectedIssue(); i != nil && m.groupOf(i.Key) != nil {
+			group = append(group, keyHelp{"a", "add them to this group", true})
 		}
 		keys = append(append(group, keyHelp{"esc", "clear the marks", true}), keys...)
 	}

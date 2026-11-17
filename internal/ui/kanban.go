@@ -115,6 +115,24 @@ func (m model) foldKey(key string) (model, tea.Cmd) {
 	return m, nil
 }
 
+func (m model) addToGroup() (model, tea.Cmd) {
+	i := m.selectedIssue()
+	if i == nil || len(m.marked) == 0 || m.groupOf(i.Key) == nil {
+		return m, nil
+	}
+	id := m.groupOf(i.Key).ID
+	sessions, groups, err := store.MutateState(func(s map[string][]store.Session, gs []store.Group) []store.Group {
+		return store.PlaceTickets(s, gs, id, m.marked)
+	})
+	if err != nil {
+		m.err = err
+		return m, nil
+	}
+	m.sessions, m.groups, m.marked = sessions, groups, nil
+	m.buildColumns()
+	return m, nil
+}
+
 func (m *model) collapse(items []tracker.Issue) []tracker.Issue {
 	var kept []tracker.Issue
 	hidden := map[string]bool{}

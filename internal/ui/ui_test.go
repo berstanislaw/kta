@@ -264,6 +264,32 @@ func TestFold(t *testing.T) {
 	}
 }
 
+func TestAddToGroup(t *testing.T) {
+	testenv.UseTemp(t)
+	store.WriteJSON(config.GroupsFile, []store.Group{{ID: "g", Tickets: []string{"A-1", "A-2"}}, {ID: "h", Tickets: []string{"B-1", "B-2"}}})
+	store.WriteJSON(config.SessionsFile, map[string][]store.Session{store.GroupKey("g"): {{ID: "gs"}}, store.GroupKey("h"): {{ID: "hs"}}})
+	m := loaded(t, todo("A-1"), todo("A-2"), todo("B-1"), todo("B-2"), todo("C-1"))
+	at := func(key string) {
+		m.row = slices.IndexFunc(m.cols[0].items, func(i tracker.Issue) bool { return i.Key == key })
+	}
+	m.marked = []string{"C-1", "B-1"}
+	at("C-1")
+	if m, _ = m.addToGroup(); len(m.marked) != 2 || len(m.groupOf("A-1").Tickets) != 2 {
+		t.Error("a card outside a group is no target")
+	}
+	at("A-2")
+	m, _ = m.addToGroup()
+	if g := m.groupOf("C-1"); g == nil || g.ID != "g" || !slices.Equal(g.Tickets, []string{"A-1", "A-2", "B-1", "C-1"}) || m.marked != nil {
+		t.Errorf("marked cards join the group under the cursor: %+v", m.groups)
+	}
+	if h := m.groupOf("B-2"); h == nil || !slices.Equal(h.Tickets, []string{"B-2"}) || len(m.sessions[store.GroupKey("h")]) != 1 || len(m.sessions[store.GroupKey("g")]) != 1 {
+		t.Errorf("the other group keeps the rest and every session stays put: %+v %v", m.groups, m.sessions)
+	}
+	if saved, _ := store.LoadGroups(); len(saved[0].Tickets) != 4 {
+		t.Errorf("not saved: %+v", saved)
+	}
+}
+
 func TestFoldSurvivesFinishedTicket(t *testing.T) {
 	testenv.UseTemp(t)
 	store.WriteJSON(config.GroupsFile, []store.Group{{ID: "g", Tickets: []string{"A-1", "A-2", "A-3"}, Collapsed: true}})
