@@ -157,8 +157,8 @@ func (m model) handleKey(k tea.KeyMsg) (model, tea.Cmd) {
 		return m.openTicket(false)
 	case "n":
 		m.newIn = ""
-		if i := m.selectedIssue(); i != nil && len(m.collapsed[i.Key].issues) > 1 {
-			m.newIn = m.collapsed[i.Key].ID
+		if i := m.selectedIssue(); i != nil && len(m.marked) < 2 && m.groupOf(i.Key) != nil {
+			m.newIn = m.groupOf(i.Key).ID
 		}
 		return m.openTicket(true)
 	case "z", "Z":
@@ -312,10 +312,14 @@ func (m model) keyHelp() []keyHelp {
 	case m.tab == tabSessions:
 		return []keyHelp{{"enter", "show", true}, {"n", "new session", true}, {"↑↓", "select", false}, stop, remove, claude, tabs, quit}
 	case m.focus == focusStrip:
-		return []keyHelp{{"enter", "show / open PR", true}, {"n", "new session", true}, {"p", "open PRs", true}, {"↑↓", "select", false}, {"o", "open in browser", false}, stop, remove, {"pgup/pgdn", "scroll the ticket", false}, {"r", "reload the ticket", false}, {"alt+↑ / esc", "back to the kanban", false}, claude, tabs, quit}
+		return []keyHelp{{"enter", "show / open PR", true}, {"n", "new session for this ticket", true}, {"p", "open PRs", true}, {"↑↓", "select", false}, {"o", "open in browser", false}, stop, remove, {"pgup/pgdn", "scroll the ticket", false}, {"r", "reload the ticket", false}, {"alt+↑ / esc", "back to the kanban", false}, claude, tabs, quit}
 	}
 	marks := len(m.marked)
-	keys := []keyHelp{{"enter", "open", marks == 0}, {"n", "new session", marks == 0}, {"/", "search", marks == 0}, {"←→↑↓", "move", false}, {"g", "mark cards to work on together", false}, {"z / Z", "fold or unfold the group / all groups", false}, {"p", "open PRs", false}, {"o", "open in browser", false}, {"r", "refresh / retry", false}}
+	newSession := "new session"
+	if i := m.selectedIssue(); i != nil && m.groupOf(i.Key) != nil {
+		newSession = "new session for the whole group"
+	}
+	keys := []keyHelp{{"enter", "open", marks == 0}, {"n", newSession, marks == 0}, {"/", "search", marks == 0}, {"←→↑↓", "move", false}, {"g", "mark cards to work on together", false}, {"z / Z", "fold or unfold the group / all groups", false}, {"p", "open PRs", false}, {"o", "open in browser", false}, {"r", "refresh / retry", false}}
 	if marks > 0 {
 		group := []keyHelp{{"g", "mark / unmark", true}}
 		if marks > 1 {
