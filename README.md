@@ -45,7 +45,7 @@ Press `n` on a ticket and write what you want. Claude starts with the whole tick
 
 ### Several tickets at once
 
-Mark cards with `g` and press `n`: one session works on all of them, and the cards become a colored group. To put marked cards into a group that already exists, press `a` on any card of that group. Later, `n` on any card of a group starts a session for all of its tickets, and `n` in the ticket panel (`tab`) starts one for that ticket alone. `z` folds a group into one card, `Z` folds them all. You can also ask the group's session, like "add KAN-12 to this" or "take KAN-9 out", and then it reads the new tickets too.
+Mark cards with `g` and press `n`: one session works on all of them, and the cards become a colored group. To put marked cards into a group that already exists, press `a` on any card of that group. On a card with no group, `a` makes a new group with it and the marked cards, without starting a session. `u` takes the card under the cursor out of its group. Later, `n` on any card of a group starts a session for all of its tickets, and `n` in the ticket panel (`tab`) starts one for that ticket alone. `z` folds a group into one card, `Z` folds them all. You can also ask the group's session, like "add KAN-12 to this" or "take KAN-9 out", and then it reads the new tickets too.
 
 ### Workspaces
 
@@ -71,7 +71,8 @@ Mark cards with `g` and press `n`: one session works on all of them, and the car
 | `enter` | open a ticket, or show a session on the right |
 | `n` | new Claude session (`ctrl+s` starts it) |
 | `g` | mark cards to work on together |
-| `a` | add the marked cards to the group under the cursor |
+| `a` | add the marked cards to the group under the cursor, or make a new group with them |
+| `u` | take a card out of its group |
 | `z` / `Z` | fold or unfold a group / every group |
 | `p` / `o` | open the PRs / the ticket in the browser |
 | `/` | search |

@@ -165,6 +165,8 @@ func (m model) handleKey(k tea.KeyMsg) (model, tea.Cmd) {
 		return m.foldKey(key)
 	case "a":
 		return m.addToGroup()
+	case "u":
+		return m.leaveGroup()
 	case "g", "G":
 		if i := m.selectedIssue(); i != nil {
 			m.marked = toggle(m.marked, i.Key)
@@ -319,7 +321,7 @@ func (m model) keyHelp() []keyHelp {
 	if i := m.selectedIssue(); i != nil && m.groupOf(i.Key) != nil {
 		newSession = "new session for the whole group"
 	}
-	keys := []keyHelp{{"enter", "open", marks == 0}, {"n", newSession, marks == 0}, {"/", "search", marks == 0}, {"←→↑↓", "move", false}, {"g", "mark cards to work on together", false}, {"z / Z", "fold or unfold the group / all groups", false}, {"p", "open PRs", false}, {"o", "open in browser", false}, {"r", "refresh / retry", false}}
+	keys := []keyHelp{{"enter", "open", marks == 0}, {"n", newSession, marks == 0}, {"/", "search", marks == 0}, {"←→↑↓", "move", false}, {"g", "mark cards to work on together", false}, {"z / Z", "fold or unfold the group / all groups", false}, {"u", "take the card out of its group", false}, {"p", "open PRs", false}, {"o", "open in browser", false}, {"r", "refresh / retry", false}}
 	if marks > 0 {
 		group := []keyHelp{{"g", "mark / unmark", true}}
 		if marks > 1 {
@@ -327,6 +329,8 @@ func (m model) keyHelp() []keyHelp {
 		}
 		if i := m.selectedIssue(); i != nil && m.groupOf(i.Key) != nil {
 			group = append(group, keyHelp{"a", "add them to this group", true})
+		} else if i != nil {
+			group = append(group, keyHelp{"a", "group them with this card", true})
 		}
 		keys = append(append(group, keyHelp{"esc", "clear the marks", true}), keys...)
 	}

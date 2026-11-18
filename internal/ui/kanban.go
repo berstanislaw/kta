@@ -117,18 +117,55 @@ func (m model) foldKey(key string) (model, tea.Cmd) {
 
 func (m model) addToGroup() (model, tea.Cmd) {
 	i := m.selectedIssue()
-	if i == nil || len(m.marked) == 0 || m.groupOf(i.Key) == nil {
+	if i == nil || len(m.marked) == 0 {
 		return m, nil
 	}
-	id := m.groupOf(i.Key).ID
+	tickets, id := m.marked, ""
+	var fresh *store.Group
+	if g := m.groupOf(i.Key); g != nil {
+		id = g.ID
+	} else {
+		if tickets = slices.Compact(slices.Sorted(slices.Values(append([]string{i.Key}, m.marked...)))); len(tickets) < 2 {
+			return m, nil
+		}
+		fresh = &store.Group{ID: store.NewUUID(), CreatedAt: time.Now().UTC().Format(time.RFC3339)}
+		id = fresh.ID
+	}
 	sessions, groups, err := store.MutateState(func(s map[string][]store.Session, gs []store.Group) []store.Group {
-		return store.PlaceTickets(s, gs, id, m.marked)
+		if fresh != nil {
+			fresh.Hue = store.PickHue(store.UsedHues(gs))
+			gs = append(gs, *fresh)
+		}
+		return store.PlaceTickets(s, gs, id, tickets)
 	})
 	if err != nil {
 		m.err = err
 		return m, nil
 	}
 	m.sessions, m.groups, m.marked = sessions, groups, nil
+	m.buildColumns()
+	return m, nil
+}
+
+func (m model) leaveGroup() (model, tea.Cmd) {
+	i := m.selectedIssue()
+	if i == nil || m.groupOf(i.Key) == nil || len(m.collapsed[i.Key].issues) > 1 {
+		return m, nil
+	}
+	if g := m.groupOf(i.Key); len(g.Tickets) == 1 && len(m.sessions[store.GroupKey(g.ID)]) > 0 {
+		m.err = fmt.Errorf("%s is the last ticket of its group, which still has sessions: it goes away once the ticket is finished", i.Key)
+		return m, nil
+	}
+	key := i.Key
+	sessions, groups, err := store.MutateState(func(s map[string][]store.Session, gs []store.Group) []store.Group {
+		return store.DropTickets(gs, []string{key})
+	})
+	if err != nil {
+		m.err = err
+		return m, nil
+	}
+	m.sessions, m.groups = sessions, groups
+	m.cleanupGroups()
 	m.buildColumns()
 	return m, nil
 }

@@ -268,15 +268,21 @@ func TestAddToGroup(t *testing.T) {
 	testenv.UseTemp(t)
 	store.WriteJSON(config.GroupsFile, []store.Group{{ID: "g", Tickets: []string{"A-1", "A-2"}}, {ID: "h", Tickets: []string{"B-1", "B-2"}}})
 	store.WriteJSON(config.SessionsFile, map[string][]store.Session{store.GroupKey("g"): {{ID: "gs"}}, store.GroupKey("h"): {{ID: "hs"}}})
-	m := loaded(t, todo("A-1"), todo("A-2"), todo("B-1"), todo("B-2"), todo("C-1"))
+	m := loaded(t, todo("A-1"), todo("A-2"), todo("B-1"), todo("B-2"), todo("C-1"), todo("D-1"))
 	at := func(key string) {
 		m.row = slices.IndexFunc(m.cols[0].items, func(i tracker.Issue) bool { return i.Key == key })
 	}
-	m.marked = []string{"C-1", "B-1"}
+	m.marked = []string{"C-1"}
 	at("C-1")
-	if m, _ = m.addToGroup(); len(m.marked) != 2 || len(m.groupOf("A-1").Tickets) != 2 {
-		t.Error("a card outside a group is no target")
+	if m, _ = m.addToGroup(); len(m.marked) != 1 || m.groupOf("C-1") != nil {
+		t.Error("one card alone is no group")
 	}
+	at("D-1")
+	m, _ = m.addToGroup()
+	if g := m.groupOf("D-1"); g == nil || !slices.Equal(g.Tickets, []string{"C-1", "D-1"}) || m.marked != nil || len(m.sessions[store.GroupKey(g.ID)]) != 0 {
+		t.Errorf("a on a card with no group makes a new group without a session: %+v", m.groups)
+	}
+	m.marked = []string{"C-1", "B-1"}
 	at("A-2")
 	m, _ = m.addToGroup()
 	if g := m.groupOf("C-1"); g == nil || g.ID != "g" || !slices.Equal(g.Tickets, []string{"A-1", "A-2", "B-1", "C-1"}) || m.marked != nil {
@@ -286,6 +292,21 @@ func TestAddToGroup(t *testing.T) {
 		t.Errorf("the other group keeps the rest and every session stays put: %+v %v", m.groups, m.sessions)
 	}
 	if saved, _ := store.LoadGroups(); len(saved[0].Tickets) != 4 {
+		t.Errorf("not saved: %+v", saved)
+	}
+	at("D-1")
+	if m, _ = m.leaveGroup(); m.groupOf("D-1") != nil || len(m.groups) != 2 {
+		t.Errorf("the last ticket of a group without sessions takes the group with it: %+v", m.groups)
+	}
+	at("B-2")
+	if m, _ = m.leaveGroup(); m.groupOf("B-2") == nil || m.err == nil {
+		t.Errorf("the last ticket of a group with sessions stays: %+v", m.groups)
+	}
+	at("A-1")
+	if m, _ = m.leaveGroup(); m.groupOf("A-1") != nil || !slices.Equal(m.groupOf("A-2").Tickets, []string{"A-2", "B-1", "C-1"}) {
+		t.Errorf("u takes the card out: %+v", m.groups)
+	}
+	if saved, _ := store.LoadGroups(); len(saved) != 2 || len(saved[0].Tickets) != 3 {
 		t.Errorf("not saved: %+v", saved)
 	}
 }
